@@ -40,21 +40,21 @@ The more real estate the better.  position and size your windows to taste.
 for the files you'd like to monitor, it is as simple as 'watch "cat $filename"' in your window
 
 current output supported:
-	gomer@bbb42:~/ti_pru/prudebug-0.25$ find /dev/shm
-	/dev/shm
-	/dev/shm/shared
-	/dev/shm/shared/datadump
-	/dev/shm/PRU1
-	/dev/shm/PRU1/register
-	/dev/shm/PRU1/datadump
-	/dev/shm/PRU1/disassemble
-	/dev/shm/PRU1/breakpoints
-	/dev/shm/PRU0
-	/dev/shm/PRU0/datadump
-	/dev/shm/PRU0/disassemble
-	/dev/shm/PRU0/register
-	/dev/shm/PRU0/breakpoints
-	gomer@bbb42:~/ti_pru/prudebug-0.25$ 
+*	gomer@bbb42:~/ti_pru/prudebug-0.25$ find /dev/shm
+*	/dev/shm
+*	/dev/shm/shared
+*	/dev/shm/shared/datadump
+*	/dev/shm/PRU1
+*	/dev/shm/PRU1/register
+*	/dev/shm/PRU1/datadump
+*	/dev/shm/PRU1/disassemble
+*	/dev/shm/PRU1/breakpoints
+*	/dev/shm/PRU0
+*	/dev/shm/PRU0/datadump
+*	/dev/shm/PRU0/disassemble
+*	/dev/shm/PRU0/register
+*	/dev/shm/PRU0/breakpoints
+*	gomer@bbb42:~/ti_pru/prudebug-0.25$ 
 
 disassmble report is coordinated with program counter and updates as you execute 'ss' command.  If you inform the wrapper of your source code, it will also
 replace some of your symbolic substitutions (.asg commands)... (still WIP for 
