@@ -93,4 +93,7 @@ Unsupported as yet:
 raw output from v.25 currently is displayed in your invocation window...
 	easy to filter this out if desired.
 
+gomer@bbb42:~/prudebug_wrapper$ cat /etc/dogtag
+BeagleBoard.org Debian Image 2018-10-07
+gomer@bbb42:~/prudebug_wrapper$ 
 
