@@ -27,6 +27,7 @@ int cmd_input(char *prompt, char *cmd, char *cmdargs, unsigned int *argptrs, uns
 
 	// print prompt
 	printf("%s", prompt);
+	fflush( stdout );
 
 	// collect command until space or return
 	i = 0;
