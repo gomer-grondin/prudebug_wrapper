@@ -56,7 +56,7 @@ current output supported:
 *	/dev/shm/PRU0/breakpoints
 *	gomer@bbb42:~/ti_pru/prudebug-0.25$ 
 
-disassmble report is coordinated with program counter and updates as you execute 'ss' command.  If you inform the wrapper of your source code, it will also
+disassemble report is coordinated with program counter and updates as you execute 'ss' command.  If you inform the wrapper of your source code, it will also
 replace some of your symbolic substitutions (.asg commands)... (still WIP for 
 complete support and symbol table entries)
 
@@ -79,14 +79,16 @@ Invocation:
 	* chmod 755 ./wrapper.pl
 	* ./wrapper.pl
 
-So far only two 'custom' commands ... 'load' will look at your source code and
-build a hash of symbolic substitutions and use it in your disassemble report.
-'unload' will do the reverse.
+So far only two 'custom' commands ... 
+*	'load' will look at your source code and
+	*	build a hash of symbolic substitutions and 
+	*	use it in your disassemble report.
+*	'unload' will do the reverse.
 
 
 Unsupported as yet:
-	*	watchpoint reports ..  I never use them
-		*	( watchpoints will work, just not reported)
+*	watchpoint reports ..  I never use them
+	*	( watchpoints will work, just not reported)
 
 raw output from v.25 currently is displayed in your invocation window...
 	easy to filter this out if desired.
