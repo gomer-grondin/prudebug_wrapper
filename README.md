@@ -18,21 +18,21 @@ Required software
 
 	
 daemontools code
-	*	2 services
-		*	ncatPRUDEBUG
-			*	mknod /var/local/PRUDEBUG.pipe p
-			*	run script
-				*	#!/bin/sh
-				*	exec 1>> /var/local/PRUDEBUG.pipe
-				*	exec ncat -k -l localhost 32768
-			*	log script
-				*	#!/bin/sh
-				*	exec multilog t ./main
-		*	PRUDEBUG
-			*	run script
-				*	#!/bin/sh
-				*	exec 0< /var/local/PRUDEBUG.pipe
-				*	exec /usr/local/bin/prudebug
+*	2 services
+	*	ncatPRUDEBUG
+		*	mknod /var/local/PRUDEBUG.pipe p
+		*	run script
+			*	#!/bin/sh
+			*	exec 1>> /var/local/PRUDEBUG.pipe
+			*	exec ncat -k -l localhost 32768
+		*	log script
+			*	#!/bin/sh
+			*	exec multilog t ./main
+	*	PRUDEBUG
+		*	run script
+			*	#!/bin/sh
+			*	exec 0< /var/local/PRUDEBUG.pipe
+			*	exec /usr/local/bin/prudebug
 
 
 use your (burly) laptop or desktop to ssh into multiple windows.
