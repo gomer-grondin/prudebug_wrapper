@@ -1,7 +1,7 @@
 # prudebug_wrapper
 wrapper for prudebug v.25 .. in perl WIP
 
-NOTE -- does not yet suppport beaglebone AI, ONLY supports beaglebone black
+NOTE -- does not yet support beaglebone AI, ONLY supports beaglebone black
 
 Features not found in v.25
 *	readline support
@@ -93,7 +93,7 @@ Unsupported as yet:
 raw output from v.25 currently is displayed in your invocation window...
 	easy to filter this out if desired.
 
-gomer@bbb42:~/prudebug_wrapper$ cat /etc/dogtag
-BeagleBoard.org Debian Image 2018-10-07
-gomer@bbb42:~/prudebug_wrapper$ 
+*	gomer@bbb42:~/prudebug_wrapper$ cat /etc/dogtag
+*	BeagleBoard.org Debian Image 2018-10-07
+*	gomer@bbb42:~/prudebug_wrapper$ 
 
