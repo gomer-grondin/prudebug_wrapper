@@ -10,7 +10,7 @@ Features not found in v.25
 *	dump format includes decimal values
 
 Required software
-*	daemontools ( cr.yp.to/daaaemontools.html ) 
+*	daemontools ( cr.yp.to/daemontools.html ) 
 	*	excellent tool by DJB
 *	ncat
 *	Perl
@@ -72,12 +72,12 @@ What I modified to V.25 :
 		* necessary for timely access to output
 
 I've included the prudebug executable... 
-	compiled on my BBB should work on yours (not necessary to recompile)
+*	compiled on my BBB should work on yours (not necessary to recompile)
 
 Invocation:
-	* is suggest a copy of wrapper.pl in your source directory
-	* chmod 755 ./wrapper.pl
-	* ./wrapper.pl
+*	 I suggest a copy of wrapper.pl in your source directory
+*	 chmod 755 ./wrapper.pl
+*	 ./wrapper.pl
 
 So far only two 'custom' commands ... 
 *	'load' will look at your source code and
