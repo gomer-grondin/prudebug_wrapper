@@ -23,15 +23,12 @@ my ( $m4, $load, $breakpoints, $watchpoints, $watchvalues, $registers, $disassem
 my $funtab;
 $funtab = {
 	ss	=> sub {
-			my $output = [];
-			communicate( $_[0], $output ) ;
+			my $output = communicate( $_[0], [] ) ;
 			$funtab->{r}( 'r' );
-			register_report();
 			disassemble_report();
 		},
 	br	=> sub {
-			my $output = [];
-			communicate( $_[0], $output ) ;
+			my $output = communicate( $_[0], [] ) ;
 			my @input = split( /\s+/, $_[0] );
 			if( @input == 1 ) {
 				breakpoint_report( $output );
@@ -49,21 +46,17 @@ $funtab = {
 		},
 	dis	=> sub {
 			$funtab->{r}( 'r' );
-			my $output = [];
-			communicate( $_[0], $output ) ;
-			for ( @$output ) {
+			for ( @{communicate( $_[0], [] )} ) {
 				if( /^\[0x(\S+)\]\s+0x\S+\s+(.*)$/i ) {
 					my ( $o, $i ) = ( $1, $2 );
 					my $addr = sprintf( "%d", hex $o );
 					$disassemble->{$active_pru}{$addr} = $i;
 				}
 			}
-			register_report();
 			disassemble_report();
 		},
 	dd	=> sub {
-			my $output = [];
-			communicate( $_[0], $output ) ;
+			my $output = communicate( $_[0], [] ) ;
 			for ( @$output ) {
 				if( /^\[(0x\S+)\]\s+0x\S+\s+0x\S+\s+/i ) {
 					datadump( $_[0], $output );
@@ -83,17 +76,14 @@ $funtab = {
 			if( @input == 2 ) { unload( $_[0] ); }
 		},
 	g	=> sub {
-			my $output = [];
-			communicate( $_[0], $output ) ;
+			my $output = communicate( $_[0], [] ) ;
 			`echo '' > /dev/shm/$active_pru/register`;
 			`echo '' > /dev/shm/$active_pru/disassemble`;
 			`echo '' > /dev/shm/$active_pru/datadump`;
 			`echo '' > /dev/shm/shared/datadump`;
 		},
 	pru	=> sub {
-			my $output = [];
-			communicate( $_[0], $output ) ;
-			for ( @$output ) {
+			for ( @{communicate( $_[0], [] )} ) {
 				next unless /active pru/i;
 				my @ray2 = split;
 				$active_pru = $ray2[$#ray2];
@@ -102,8 +92,7 @@ $funtab = {
 			}
 		},
 	r	=> sub {
-			my $output = [];
-			communicate( $_[0], $output ) ;
+			my $output = communicate( $_[0], [] ) ;
 			for ( @$output ) {
 				if( /^Register info/i ) {
 					register( $output );
@@ -113,9 +102,7 @@ $funtab = {
 			register_report();
 		},
 	halt	=> sub {
-			my $output = [];
-			communicate( $_[0], $output ) ;
-			for ( @$output ) {
+			for ( @{communicate( $_[0], [] )} ) {
 				if( /halted/i ) {
 					$funtab->{r}( 'r' );
 					last;
@@ -330,7 +317,6 @@ sub datadump {
 
 sub communicate {
 	my( $input, $output ) = @_;
-	my @input = split( /\s+/, $input );
 	my $stamp = `echo '' | tai64n | tr -d " \n"`;
 	my $sum = `$sum_command`;
 	print $INPUT "$input\n";
@@ -354,6 +340,7 @@ sub communicate {
  		print "$x\n";
 	}
 	close $OUTPUT or die "unable : $!";
+	$output;
 }
 
 sub load_report {
