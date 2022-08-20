@@ -34,6 +34,9 @@ daemontools code
 			*	#!/bin/sh
 			*	exec 0< /var/local/PRUDEBUG.pipe
 			*	exec /usr/local/bin/prudebug
+		*	log script
+			*	#!/bin/sh
+			*	exec multilog t ./main
 
 
 use your (burly) laptop or desktop to ssh into multiple windows.
