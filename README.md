@@ -12,7 +12,8 @@ Features not found in v.25
 Required software
 *	daemontools ( cr.yp.to/daemontools.html ) 
 	*	excellent tool by DJB
-*	ncat
+*	ncat -- ( https://nmap.org/ncat/ )
+	* NOT 'netcat'
 *	Perl
 	*	Term::Readline
 
