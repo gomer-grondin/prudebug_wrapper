@@ -17,8 +17,8 @@ my $logfile = '/service/PRUDEBUG/log/main/current';
 my $sum_command = "cksum $logfile | awk '{print \$1}'";
 my $active_pru = 'PRU0';
 my $prompt = "prudebug_wrapper $active_pru > ";
-my ( $m4, $load, $breakpoints, $watchpoints, $watchvalues, $registers, $disassemble, $datadump, $symtab ) = 
-   ( {}, {}, {}, {}, {}, {}, {}, {}, {} );
+my ( $m4, $load, $unload, $breakpoints, $watchpoints, $watchvalues, $registers, $disassemble, $datadump, $symtab ) = 
+   ( {}, {}, {}, {}, {}, {}, {}, {}, {}, {} );
 
 my $funtab;
 $funtab = {
@@ -275,7 +275,6 @@ sub disassemble_report {
 	}
 	$fetch and $funtab->{'dis'}("dis 0 $end");
 
-	load_report();
 	my $h = $disassemble->{$active_pru};
 	open my $FH, ">$ramdisk/$active_pru/disassemble" or die "unable : $!";
 	for( my $x = $start ; $x < $end ; $x++ )  {
@@ -347,7 +346,7 @@ sub communicate {
 sub load_report {
 	my $ap = $active_pru;
 	if ( keys %{$load->{$ap}} ) {
-		print join( "\n", sort keys %{$load->{$ap}} );
+		print "\t", join( "\n\t", sort keys %{$load->{$ap}} ), "\n";
 	} else {
 		print "No source files loaded\n";
 	}
@@ -359,9 +358,10 @@ sub unload {
 	my $ap = $active_pru;
 	if( exists $load->{$ap}{$input[1]} ) {
 		delete $load->{$ap}{$input[1]};
-		$m4 = {};
+		$unload->{$ap}{$input[1]}++;
+		$m4->{$ap} = {};
 		for my $f ( keys %{$load->{$ap}} ) {
-			$funtab->{'load'}( $f );
+			$funtab->{'load'}( "load $f" );
 		}
 	} else {
 		print $input[1] . " is not loaded\n";
@@ -372,9 +372,8 @@ sub load {
 	my( $input ) = @_;
 	my @input = split( /\s+/, $input );
 	my $ap = $active_pru;
-	if( exists $load->{$ap}{$input[1]} ) {
-		print $input[1] . " is already loaded\n";
-		return;
+	if( exists $unload->{$ap}{$input[1]} ) {
+		delete $unload->{$ap}{$input[1]};
 	}
 	unless( -f $input[1] ) {
 		print $input[1] . " not found\n";
@@ -387,7 +386,9 @@ sub load {
 			next;
 		}
 		if( /\.include\s+\"(\S+)\"\s*$/ ) {
-			$funtab->{'load'}( "load $1" );
+			my $f = $1;
+			exists $unload->{$ap}{$f} and next;
+			$funtab->{'load'}( "load $f" );
 			next;
 		}
 	}
