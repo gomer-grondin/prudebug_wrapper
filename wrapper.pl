@@ -24,7 +24,6 @@ my $funtab;
 $funtab = {
 	ss	=> sub {
 			my $output = communicate( $_[0], [] ) ;
-			$funtab->{r}( 'r' );
 			disassemble_report();
 		},
 	br	=> sub {
@@ -45,7 +44,6 @@ $funtab = {
 			}
 		},
 	dis	=> sub {
-			$funtab->{r}( 'r' );
 			for ( @{communicate( $_[0], [] )} ) {
 				if( /^\[0x(\S+)\]\s+0x\S+\s+(.*)$/i ) {
 					my ( $o, $i ) = ( $1, $2 );
@@ -69,6 +67,7 @@ $funtab = {
 			my @input = split( /\s+/, $_[0] );
 			if( @input == 1 ) { load_report(); }
 			if( @input == 2 ) { load( $_[0] ); }
+			disassemble_report();
 		},
 	unload	=> sub {
 			my @input = split( /\s+/, $_[0] );
@@ -102,13 +101,14 @@ $funtab = {
 			register_report();
 		},
 	halt	=> sub {
+			my $halted = 0;
 			for ( @{communicate( $_[0], [] )} ) {
 				if( /halted/i ) {
-					$funtab->{r}( 'r' );
+					$halted = 1;
 					last;
 				}
 			}
-			disassemble_report();
+			$halted and disassemble_report();
 		},
 };
 
@@ -262,7 +262,7 @@ sub register_report {
 }
 
 sub disassemble_report {
-	$program_counter or return;
+	$funtab->{r}( 'r' );
 	my $start = $program_counter - 10;
 	$start < 0 and $start = 0;
 	my $end = $program_counter + 10;
@@ -275,6 +275,7 @@ sub disassemble_report {
 	}
 	$fetch and $funtab->{'dis'}("dis 0 $end");
 
+	load_report();
 	my $h = $disassemble->{$active_pru};
 	open my $FH, ">$ramdisk/$active_pru/disassemble" or die "unable : $!";
 	for( my $x = $start ; $x < $end ; $x++ )  {
