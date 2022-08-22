@@ -301,12 +301,9 @@ sub datadump {
 				( $1, $2, $3, $4, $5 );
 			$addr ge '4000' and $ap = 'shared';
 			$key = hex $addr;
-			$datadump->{$ap}{$key} = $plus0;
-			$key += 1;
-			$datadump->{$ap}{$key} = $plus1;
-			$key += 1;
-			$datadump->{$ap}{$key} = $plus2;
-			$key += 1;
+			$datadump->{$ap}{$key++} = $plus0;
+			$datadump->{$ap}{$key++} = $plus1;
+			$datadump->{$ap}{$key++} = $plus2;
 			$datadump->{$ap}{$key} = $plus3;
 		}
 	}
@@ -366,6 +363,7 @@ sub unload {
 	} else {
 		print $input[1] . " is not loaded\n";
 	}
+	delete $disassemble->{$ap}; # force reinitialization
 }
 
 sub load {
@@ -394,6 +392,7 @@ sub load {
 	}
 	close $FH or die "unable : $!";
 	$load->{$ap}{$input[1]}++;
+	delete $disassemble->{$ap}; # force reinitialization
 }
 
 sub m4 {
