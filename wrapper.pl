@@ -20,8 +20,17 @@ my $prompt = "prudebug_wrapper $active_pru > ";
 my ( $m4, $load, $unload, $breakpoints, $watchpoints, $watchvalues, $registers, $disassemble, $datadump, $symtab ) = 
    ( {}, {}, {}, {}, {}, {}, {}, {}, {}, {} );
 
+my $ramdisk = '/dev/shm';
+`mkdir -p "$ramdisk/PRU0"`;
+`mkdir -p "$ramdisk/PRU1"`;
+`mkdir -p "$ramdisk/shared"`;
+
 my $funtab;
 $funtab = {
+	q	=> sub {
+			my $output = communicate( $_[0], [] ) ;
+			die "you're a quitter";
+		},
 	ss	=> sub {
 			my $output = communicate( $_[0], [] ) ;
 			disassemble_report();
@@ -72,14 +81,14 @@ $funtab = {
 	unload	=> sub {
 			my @input = split( /\s+/, $_[0] );
 			if( @input == 1 ) { print "unload what?\n"; }
-			if( @input == 2 ) { unload( $_[0] ); }
+			if( @input  > 1 ) { unload( $_[0] ); }
 		},
 	g	=> sub {
 			my $output = communicate( $_[0], [] ) ;
-			`echo '' > /dev/shm/$active_pru/register`;
-			`echo '' > /dev/shm/$active_pru/disassemble`;
-			`echo '' > /dev/shm/$active_pru/datadump`;
-			`echo '' > /dev/shm/shared/datadump`;
+			`echo '' > $ramdisk/$active_pru/register`;
+			`echo '' > $ramdisk/$active_pru/disassemble`;
+			`echo '' > $ramdisk/$active_pru/datadump`;
+			`echo '' > $ramdisk/shared/datadump`;
 		},
 	pru	=> sub {
 			for ( @{communicate( $_[0], [] )} ) {
@@ -112,17 +121,21 @@ $funtab = {
 		},
 };
 
-my $ramdisk = '/dev/shm';
-`mkdir -p "$ramdisk/PRU0"`;
-`mkdir -p "$ramdisk/PRU1"`;
-`mkdir -p "$ramdisk/shared"`;
-
 my $term = Term::ReadLine->new('prudebug wrapper');
+my $latest = '';
 while( defined ( $_ = $term->readline($prompt) ) ) { 
 	chomp;
 	my $raw_input = $_;
-	next unless $raw_input;
-	$term->addhistory($raw_input);
+	if( $raw_input ) {
+		$term->addhistory($raw_input);
+		$latest = $raw_input;
+	} else {
+		if( $latest ) {
+			$raw_input = $latest;
+		} else {
+			next;
+		}
+	}
 	my @input = split( /\s+/, $raw_input );
 	if( exists $funtab->{lc $input[0]} ) {
 		print "$raw_input\n";
@@ -279,15 +292,19 @@ sub disassemble_report {
 	open my $FH, ">$ramdisk/$active_pru/disassemble" or die "unable : $!";
 	for( my $x = $start ; $x < $end ; $x++ )  {
 		exists $h->{$x} or next;
-		my( $s, $p ) = ( $h->{$x}, '' );
+		my( $s, $p ) = ( lc $h->{$x}, '' );
 		if( substr( $s, 0, 1 ) eq '>' ) {
 			$p = '   ' . substr( $s, 3, 99 );
 		} else {
 			$p = "   $s";
 		}
 		$p = ">> " . substr( $p, 3, 99 ) if $x == $program_counter;
-		my $m = sprintf( "0x%04x %s\n", $x, m4( $p ) );
+		my $m4 = m4( $p );
+		my $m = sprintf( "0x%04x %s\n", $x, $p );
 		print $FH $m;
+		next if $m4 eq $s;
+		print $FH sprintf( "0x%04x\t\t\t%s\n", $x, uc $m4 );
+
 	}
 	close $FH or die "unable : $!";
 }
@@ -353,15 +370,15 @@ sub unload {
 	my( $input ) = @_;
 	my @input = split( /\s+/, $input );
 	my $ap = $active_pru;
-	if( exists $load->{$ap}{$input[1]} ) {
-		delete $load->{$ap}{$input[1]};
-		$unload->{$ap}{$input[1]}++;
-		$m4->{$ap} = {};
-		for my $f ( keys %{$load->{$ap}} ) {
-			$funtab->{'load'}( "load $f" );
-		}
-	} else {
-		print $input[1] . " is not loaded\n";
+	for my $k ( @input ) {
+		next if $k eq 'unload';
+		delete $load->{$ap}{$k};
+		$unload->{$ap}{$k}++;
+	}
+
+	$m4->{$ap} = {};
+	for my $f ( keys %{$load->{$ap}} ) {
+		$funtab->{'load'}( "load $f" );
 	}
 	delete $disassemble->{$ap}; # force reinitialization
 }
@@ -416,6 +433,7 @@ sub m4 {
 			$output .= ' ';
 		}
 	}
-	$output;
+	$output =~ /\s*(.*\S+)\s*$/;
+	$1;
 }
 
