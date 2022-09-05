@@ -292,16 +292,12 @@ sub disassemble_report {
 	open my $FH, ">$ramdisk/$active_pru/disassemble" or die "unable : $!";
 	for( my $x = $start ; $x < $end ; $x++ )  {
 		exists $h->{$x} or next;
-		my( $s, $p ) = ( lc $h->{$x}, '' );
-		if( substr( $s, 0, 1 ) eq '>' ) {
-			$p = '   ' . substr( $s, 3, 99 );
-		} else {
-			$p = "   $s";
-		}
-		$p = ">> " . substr( $p, 3, 99 ) if $x == $program_counter;
+		my $s  = lc $h->{$x};
+		my $s1 = substr( $s, 3, 99 );
+		my $p  = "   $s";
+		   $p  = ">> $s1" if $x == $program_counter;
 		my $m4 = m4( $p );
-		my $m = sprintf( "0x%04x %s\n", $x, $p );
-		print $FH $m;
+		print $FH sprintf( "0x%04x %s\n", $x, $p );
 		next if $m4 eq $s;
 		print $FH sprintf( "0x%04x\t\t\t%s\n", $x, uc $m4 );
 
