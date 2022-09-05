@@ -130,11 +130,8 @@ while( defined ( $_ = $term->readline($prompt) ) ) {
 		$term->addhistory($raw_input);
 		$latest = $raw_input;
 	} else {
-		if( $latest ) {
-			$raw_input = $latest;
-		} else {
-			next;
-		}
+		next unless $latest;
+		$raw_input = $latest;
 	}
 	my @input = split( /\s+/, $raw_input );
 	if( exists $funtab->{lc $input[0]} ) {
