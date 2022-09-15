@@ -52,12 +52,10 @@ current output supported:
 *	/dev/shm/PRU1/register
 *	/dev/shm/PRU1/datadump
 *	/dev/shm/PRU1/disassemble
-*	/dev/shm/PRU1/breakpoints
 *	/dev/shm/PRU0
 *	/dev/shm/PRU0/datadump
 *	/dev/shm/PRU0/disassemble
 *	/dev/shm/PRU0/register
-*	/dev/shm/PRU0/breakpoints
 *	gomer@bbb42:~/ti_pru/prudebug-0.25$ 
 
 disassemble report is coordinated with program counter and updates as you execute 'ss' command.  If you inform the wrapper of your source code, it will also
@@ -89,15 +87,18 @@ So far only two 'custom' commands ...
 	*	use it in your disassemble report.
 *	'unload' will do the reverse.
 
-
-Unsupported as yet:
-*	watchpoint reports ..  I never use them
-	*	( watchpoints will work, just not reported)
-
-raw output from v.25 currently is displayed in your invocation window...
-	easy to filter this out if desired.
-
 *	gomer@bbb42:~/prudebug_wrapper$ cat /etc/dogtag
 *	BeagleBoard.org Debian Image 2018-10-07
 *	gomer@bbb42:~/prudebug_wrapper$ 
+
+update 9/15/22
+
+No longer track breakpoints within the wrapper ... breakpoints and watchpoints
+are reported in the invocation window
+
+help and hb reported in invocation window
+
+output from several commands ( r, dis, ss )  no longer echoed to invocation
+ window.  there is a new sub 'command_echo' that controls this.
+
 

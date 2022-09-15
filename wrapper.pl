@@ -17,61 +17,39 @@ my $logfile = '/service/PRUDEBUG/log/main/current';
 my $sum_command = "cksum $logfile | awk '{print \$1}'";
 my $active_pru = 'PRU0';
 my $prompt = "prudebug_wrapper $active_pru > ";
-my ( $m4, $load, $unload, $breakpoints, $watchpoints, $watchvalues, $registers, $disassemble, $datadump, $symtab ) = 
-   ( {}, {}, {}, {}, {}, {}, {}, {}, {}, {} );
+my ( $m4, $load, $unload, $registers, $disassemble, $datadump ) = 
+   ( {}, {}, {}, {}, {}, {} );
 
 my $ramdisk = '/dev/shm';
 `mkdir -p "$ramdisk/PRU0"`;
 `mkdir -p "$ramdisk/PRU1"`;
 `mkdir -p "$ramdisk/shared"`;
 
-my $funtab;
+my ( $funtab, $output );
 $funtab = {
-	q	=> sub {
-			my $output = communicate( $_[0], [] ) ;
-			die "you're a quitter";
-		},
-	ss	=> sub {
-			my $output = communicate( $_[0], [] ) ;
-			disassemble_report();
-		},
-	br	=> sub {
-			my $output = communicate( $_[0], [] ) ;
-			my @input = split( /\s+/, $_[0] );
-			if( @input == 1 ) {
-				breakpoint_report( $output );
-			}
-			if( @input == 2 ) {
-				my $ap = $active_pru;
-				$breakpoints->{$ap}{$input[1]} = undef;
-				$funtab->{br}( 'br' );
-			}
-			if( @input == 3 ) {
-				my $ap = $active_pru;
-				$breakpoints->{$ap}{$input[1]} = $input[2];
-				$funtab->{br}( 'br' );
-			}
-		},
+	dd	=> sub { datadump( $_[0], $output ); },
+	d	=> sub { $funtab->{dd}($_[0]); },
+	q	=> sub { die "you're a quitter"; },
+	ss	=> sub { disassemble_report(); },
+	halt	=> sub { disassemble_report(); },
+	br	=> sub { 1; },
+	help	=> sub { 1; },
+	hb	=> sub { 1; },
+	wa	=> sub { 1; },
 	dis	=> sub {
-			for ( @{communicate( $_[0], [] )} ) {
+			for ( @$output ) {
 				if( /^\[0x(\S+)\]\s+0x\S+\s+(.*)$/i ) {
 					my ( $o, $i ) = ( $1, $2 );
 					my $addr = sprintf( "%d", hex $o );
+					# strip pc indicator
+					if( $i =~ /^>> / ) {
+						$i = substr( $i, 3, 99 );
+					}
 					$disassemble->{$active_pru}{$addr} = $i;
 				}
 			}
 			disassemble_report();
 		},
-	dd	=> sub {
-			my $output = communicate( $_[0], [] ) ;
-			for ( @$output ) {
-				if( /^\[(0x\S+)\]\s+0x\S+\s+0x\S+\s+/i ) {
-					datadump( $_[0], $output );
-					last;
-				}
-			}
-		},
-	d	=> sub { $funtab->{dd}($_[0]); },
 	load	=> sub {
 			my @input = split( /\s+/, $_[0] );
 			if( @input == 1 ) { load_report(); }
@@ -84,14 +62,13 @@ $funtab = {
 			if( @input  > 1 ) { unload( $_[0] ); }
 		},
 	g	=> sub {
-			my $output = communicate( $_[0], [] ) ;
 			`echo '' > $ramdisk/$active_pru/register`;
 			`echo '' > $ramdisk/$active_pru/disassemble`;
 			`echo '' > $ramdisk/$active_pru/datadump`;
 			`echo '' > $ramdisk/shared/datadump`;
 		},
 	pru	=> sub {
-			for ( @{communicate( $_[0], [] )} ) {
+			for ( @$output ) {
 				next unless /active pru/i;
 				my @ray2 = split;
 				$active_pru = $ray2[$#ray2];
@@ -100,24 +77,8 @@ $funtab = {
 			}
 		},
 	r	=> sub {
-			my $output = communicate( $_[0], [] ) ;
-			for ( @$output ) {
-				if( /^Register info/i ) {
-					register( $output );
-					last;
-				}
-			}
+			register( $output );
 			register_report();
-		},
-	halt	=> sub {
-			my $halted = 0;
-			for ( @{communicate( $_[0], [] )} ) {
-				if( /halted/i ) {
-					$halted = 1;
-					last;
-				}
-			}
-			$halted and disassemble_report();
 		},
 };
 
@@ -134,91 +95,15 @@ while( defined ( $_ = $term->readline($prompt) ) ) {
 		$raw_input = $latest;
 	}
 	my @input = split( /\s+/, $raw_input );
-	if( exists $funtab->{lc $input[0]} ) {
+	my $c = lc $input[0];
+	if( exists $funtab->{$c} ) {
 		print "$raw_input\n";
-		$funtab->{lc $input[0]}( $raw_input );
+		$output = communicate( $raw_input, [], command_echo( $c ) ) ;
+		$funtab->{$c}( $raw_input );
 	} else {
 		print "$raw_input ----- not yet implemented\n";
 	}	
 	$prompt = "prudebug_wrapper $active_pru > ";
-}
-
-sub breakpoint_report	{
-	my( $ray ) = @_;
-	for ( @$ray ) {
-		unless ( /^(\d\d)\s+(.*)$/i ) {
-			print;
-			print "\n";
-			next;
-		}
-		my $br = $1 + 0;
-		if( $2 eq 'UNUSED' ) {
-			$breakpoints->{$active_pru}{$br} = undef;
-			print "$1  UNUSED\n";
-			next;
-		} else {
-			my $h = hex $2;
-			$breakpoints->{$active_pru}{$br} = $2;
-			printf( "%02d  %s  %u \n", $1, $2, $h );
-		}
-	}
-	open my $FH, ">$ramdisk/$active_pru/breakpoints" or die "unable : $!";
-	my $h = $breakpoints->{$active_pru};
-	for my $k ( sort keys %$h ) {
-		my $l;
-		if( defined $h->{$k} ) {
-			$l = sprintf( "%02d -- %s  %u", $k, $h->{$k}, hex $h->{$k} );
-		} else {
-			$l = sprintf( "%02d -- UNUSED", $k );
-		}
-		printf $FH "$l\n";
-	}
-	close $FH or die "unable : $!";
-}
-
-sub watchpoint_report	{
-	my( $input, $output ) = @_;
-	for ( @$output ) {
-		unless ( /^(\d\d)\s+(.*)$/i ) {
-			print;
-			print "\n";
-			next;
-		}
-		my $wp = $1 + 0;
-		if( $2 eq 'UNUSED' ) {
-			$watchpoints->{$active_pru}{$wp} = undef;
-			print "$1  UNUSED\n";
-			next;
-		}
-		my @ray = split( /\s+/, $_ );
-	        my $address = $ray[1];	
-		my $value = '';
-		$ray[4] and $value = $ray[4];
-		if( @ray > 2 ) {
-			$watchpoints->{$active_pru}{$wp} = $address;
-			$watchvalues->{$active_pru}{$wp} = $value;
-			my $fs = "%02d  %s  %s\n";
-			printf( $fs, $wp, $address, $value );
-		}
-	}
-}
-
-sub set_watchpoint	{
-	my( $ray ) = @_;
-	my $wa = $ray->[1];
-	my $address = $ray->[2];
-	if( @$ray == 3 ) {
-		$watchpoints->{$active_pru}{$wa} = $address;
-	} else {
-		$watchvalues->{$active_pru}{$wa} = $ray->[3];
-	}
-}
-
-sub delete_watchpoint	{
-	my( $ray ) = @_;
-	my $wa = $ray->[1];
-	$watchpoints->{$active_pru}{$wa} = undef;
-	$watchvalues->{$active_pru}{$wa} = undef;
 }
 
 sub register {
@@ -272,28 +157,28 @@ sub register_report {
 }
 
 sub disassemble_report {
+	$output = communicate( 'r', [], command_echo( 'r' ) ) ;
 	$funtab->{r}( 'r' );
 	my $start = $program_counter - 10;
 	$start < 0 and $start = 0;
 	my $end = $program_counter + 10;
 	my $fetch = 0;
 	for( my $x = $start ; $x < $end ; $x++ )  {
-		unless( exists $disassemble->{$active_pru}{$x} ) {
-			printf "%04d 0x%x not exist \n", $x, $x;
-			$fetch = 1;
-		}
+		$fetch++ unless( exists $disassemble->{$active_pru}{$x} );
 	}
-	$fetch and $funtab->{'dis'}("dis 0 $end");
+	if( $fetch ) {
+		$output = communicate( "dis $start 0x15", [], 0 ) ;
+		$funtab->{'dis'}('dis');
+	}
 
 	my $h = $disassemble->{$active_pru};
 	open my $FH, ">$ramdisk/$active_pru/disassemble" or die "unable : $!";
 	for( my $x = $start ; $x < $end ; $x++ )  {
 		exists $h->{$x} or next;
 		my $s  = lc $h->{$x};
-		my $s1 = substr( $s, 3, 99 );
+		my $m4 = m4( $s );
 		my $p  = "   $s";
-		   $p  = ">> $s1" if $x == $program_counter;
-		my $m4 = m4( $p );
+		   $p  = ">> $s" if $x == $program_counter;
 		print $FH sprintf( "0x%04x %s\n", $x, $p );
 		next if $m4 eq $s;
 		print $FH sprintf( "0x%04x\t\t\t%s\n", $x, uc $m4 );
@@ -323,7 +208,7 @@ sub datadump {
 }
 
 sub communicate {
-	my( $input, $output ) = @_;
+	my( $input, $output, $echo ) = @_;
 	my $stamp = `echo '' | tai64n | tr -d " \n"`;
 	my $sum = `$sum_command`;
 	print $INPUT "$input\n";
@@ -334,7 +219,6 @@ sub communicate {
 		$1 lt $stamp and next;
 		my $x = $2;
 		push @$output, $x;
- 		print "$x\n";
 	}
 	close $OUTPUT or die "unable : $!";
 	# what about when the 'current' file gets archived?
@@ -344,9 +228,11 @@ sub communicate {
 		$1 lt $stamp and last;
 		my $x = $2;
 		push @$output, $x;
- 		print "$x\n";
 	}
 	close $OUTPUT or die "unable : $!";
+	my $ic = grep { $_ =~ /Invalid command/i } @$output;
+	$output = $ic ? [] : $output;
+ 	$echo and print join( "\n", @$output ) . "\n";
 	$output;
 }
 
@@ -420,13 +306,21 @@ sub m4 {
 		}
 		
 		$output .= $i;
-		if( $last eq ',' ) {
-			$output .= ', ';
-		} else {
-			$output .= ' ';
-		}
+		$output .= $last eq ',' ? ', ' : ' ';
 	}
-	$output =~ /\s*(.*\S+)\s*$/;
+	$output =~ /\s*(\S+.*\S+)\s*$/;
 	$1;
 }
 
+# do we want to echo command output to invocation screen?
+sub command_echo	{
+	my( $i ) = @_;
+	$i eq 'r'    and return 0;
+	$i eq 'ss'   and return 0;
+	$i eq 'dis'  and return 0;
+	$i eq 'br'   and return 1;
+	$i eq 'wa'   and return 1;
+	$i eq 'help' and return 1;
+	$i eq 'hb'   and return 1;
+	1;
+}
